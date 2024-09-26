@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="حاسبة النظام الغذائي لاكتشاف احتياجاتك من السعرات والماكروز بناءً على أهدافك الصحية">
+    <title>حاسبة النظام الغذائي</title>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #1e1e1e;
+            color: #e6e6e6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #2e2e2e;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 32px;
+            color: #90ee90;
+        }
+
+        p {
+            text-align: center;
+            font-size: 18px;
+            color: #ccc;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #555;
+            border-radius: 5px;
+            background-color: #444;
+            color: #e6e6e6;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #90ee90;
+            color: #000;
+            border: none;
+            padding: 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #7be07b;
+        }
+
+        .results {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #3a3a3a;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .result-item {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .macros-chart {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .macros-chart canvas {
+            max-width: 100%;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loader img {
+            width: 50px;
+        }
+
+        .share-btn {
+            margin-top: 10px;
+            display: inline-block;
+            padding: 10px;
+            background-color: #2b6cb0;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .share-btn:hover {
+            background-color: #2c5282;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>حاسبة النظام الغذائي</h1>
+    <p>اكتشف احتياجاتك اليومية من السعرات والماكروز بناءً على أهدافك الصحية</p>
+
+    <div class="form-group">
+        <label for="age">العمر</label>
+        <input type="number" id="age" placeholder="أدخل عمرك">
+    </div>
+
+    <div class="form-group">
+        <label for="gender">الجنس</label>
+        <select id="gender">
+            <option value="male">ذكر</option>
+            <option value="female">أنثى</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="weight">الوزن (كجم)</label>
+        <input type="number" id="weight" placeholder="أدخل وزنك">
+    </div>
+
+    <div class="form-group">
+        <label for="height">الطول (سم)</label>
+        <input type="number" id="height" placeholder="أدخل طولك">
+    </div>
+
+    <div class="form-group">
+        <label for="activity">مستوى النشاط البدني</label>
+        <select id="activity">
+            <option value="sedentary">خامل (بدون تمارين)</option>
+            <option value="light">نشاط خفيف</option>
+            <option value="moderate">نشاط متوسط</option>
+            <option value="active">نشاط عالي</option>
+            <option value="intense">نشاط مكثف</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="goal">الهدف</label>
+        <select id="goal">
+            <option value="lose">خسارة وزن</option>
+            <option value="maintain">الحفاظ على الوزن</option>
+            <option value="gain">زيادة الوزن (بناء العضلات)</option>
+        </select>
+    </div>
+
+    <button onclick="startCalculation()">احسب</button>
+
+    <div class="loader" id="loader">
+        <img src="https://i.gifer.com/VAyR.gif" alt="loading">
+        <p>جارٍ حساب النتائج...</p>
+    </div>
+
+    <div class="results" id="results">
+        <h2>النتائج</h2>
+        <div class="result-item" id="calories"></div>
+        <div class="result-item" id="bmr"></div>
+        <div class="result-item" id="water"></div>
+        <div class="result-item" id="protein"></div>
+        <div class="result-item" id="carbs"></div>
+        <div class="result-item" id="fat"></div>
+
+        <div class="macros-chart">
+            <canvas id="macrosChart"></canvas>
+        </div>
+
+        <a href="#" class="share-btn">مشاركة النتائج</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    function startCalculation() {
+        // إظهار اللودينج
+        document.getElementById('loader').style.display = 'block';
+        document.getElementById('results').style.display = 'none';
+
+        // تأخير 3 ثوانٍ قبل إظهار النتائج
+        setTimeout(calculate, 3000);
+    }
+
+    function calculate() {
+        // إخفاء اللودينج
+        document.getElementById('loader').style.display = 'none';
+
+        const age = document.getElementById('age').value;
+        const gender = document.getElementById('gender').value;
+        const weight = document.getElementById('weight').value;
+        const height = document.getElementById('height').value;
+        const activity = document.getElementById('activity').value;
+        const goal = document.getElementById('goal').value;
+
+        if (!age || !weight || !height) {
+            alert('يرجى إدخال جميع البيانات');
+            return;
+        }
+
+        // حساب BMR
+        let bmr;
+        if (gender === 'male') {
+            bmr = 88.36 + (13.4 * weight) + (4.8 * height) - (5.7 * age);
+        } else {
+            bmr = 447.6 + (9.2 * weight) + (3.1 * height) - (4.3 * age);
+        }
+
+        let activityFactor;
+        switch (activity) {
+            case 'sedentary':
+                activityFactor = 1.2;
+                break;
+            case 'light':
+                activityFactor = 1.375;
+                break;
+            case 'moderate':
+                activityFactor = 1.55;
+                break;
+            case 'active':
+                activityFactor = 1.725;
+                break;
+            case 'intense':
+                activityFactor = 1.9;
+                break;
+        }
+
+        let totalCalories = bmr * activityFactor;
+        if (goal === 'lose') {
+            totalCalories -= 500;
+        } else if (goal === 'gain') {
+            totalCalories += 500;
+        }
+
+        const protein = (totalCalories * 0.3) / 4;
+        const carbs = (totalCalories * 0.4) / 4;
+        const fat = (totalCalories * 0.3) / 9;
+
+        const waterIntake = weight * 0.033; // كمية الماء اليومية باللترات
+
+        document.getElementById('calories').textContent = `السعرات الحرارية اليومية: ${Math.round(totalCalories)} سعر`;
+        document.getElementById('bmr').textContent = `معدل الأيض الأساسي (BMR): ${Math.round(bmr)} سعر`;
+        document.getElementById('water').textContent = `الاحتياجات المائية اليومية: ${waterIntake.toFixed(2)} لتر`;
+        document.getElementById('protein').textContent = `البروتين: ${Math.round(protein)} جم`;
+        document.getElementById('carbs').textContent = `الكربوهيدرات: ${Math.round(carbs)} جم`;
+        document.getElementById('fat').textContent = `الدهون: ${Math.round(fat)} جم`;
+
+        document.getElementById('results').style.display = 'block';
+
+        const ctx = document.getElementById('macrosChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['بروتين', 'كربوهيدرات', 'دهون'],
+                datasets: [{
+                    label: 'الماكروز',
+                    data: [protein, carbs, fat],
+                    backgroundColor: ['#90ee90', '#4fd1c5', '#f6ad55'],
+                }]
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
